@@ -1,0 +1,401 @@
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a1a;
+  --surface: rgba(20, 20, 50, 0.85);
+  --border: rgba(150, 100, 255, 0.25);
+  --accent: #a78bfa;
+  --accent2: #f472b6;
+  --gold: #fbbf24;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --wood: #4ade80;
+  --fire: #f87171;
+  --earth: #fbbf24;
+  --metal: #e2e8f0;
+  --water: #60a5fa;
+}
+
+body {
+  font-family: 'Noto Serif KR', 'Malgun Gothic', serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ===== Stars Background ===== */
+.stars {
+  position: fixed; inset: 0; z-index: 0;
+  background: radial-gradient(ellipse at top, #1a1040 0%, #0a0a1a 70%);
+  overflow: hidden;
+}
+.stars::before, .stars::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 25%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 75%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 85%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 5% 50%, rgba(167,139,250,0.5) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 78% 10%, rgba(244,114,182,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 48% 35%, rgba(96,165,250,0.4) 0%, transparent 100%);
+  background-size: 100% 100%;
+}
+.stars::after {
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 55%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 65%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 95% 90%, rgba(255,255,255,0.4) 0%, transparent 100%);
+}
+
+/* ===== Header ===== */
+header {
+  position: relative; z-index: 10;
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+  background: linear-gradient(180deg, rgba(90,50,180,0.3) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+.subtitle { color: var(--muted); font-size: 1rem; }
+
+/* ===== Main ===== */
+main {
+  position: relative; z-index: 10;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ===== Card ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.card h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+.card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+/* ===== Form ===== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+.optional { font-size: 0.75rem; color: var(--accent); }
+input, select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.15);
+}
+input::placeholder { color: var(--muted); }
+select option { background: #1a1040; color: var(--text); }
+
+/* ===== Buttons ===== */
+.btn-primary {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124,58,237,0.5);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary {
+  padding: 0.5rem 1.2rem;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-secondary:hover { background: rgba(167,139,250,0.1); }
+
+/* ===== Result Header ===== */
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.result-header h2 { margin-bottom: 0; }
+
+/* ===== Pillars ===== */
+.pillars-container { margin-bottom: 2rem; }
+.pillars {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.pillar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 80px;
+}
+.pillar-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.pillar-stem, .pillar-branch {
+  width: 72px; height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  transition: transform 0.2s;
+}
+.pillar-stem:hover, .pillar-branch:hover { transform: scale(1.05); }
+.pillar-stem .hanja { font-size: 1.4rem; }
+.pillar-stem .hangul, .pillar-branch .hangul {
+  font-size: 0.65rem;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+.elem-wood .pillar-stem, .elem-wood .pillar-branch { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: var(--wood); }
+.elem-fire .pillar-stem, .elem-fire .pillar-branch { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.3); color: var(--fire); }
+.elem-earth .pillar-stem, .elem-earth .pillar-branch { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.3); color: var(--earth); }
+.elem-metal .pillar-stem, .elem-metal .pillar-branch { background: rgba(226,232,240,0.12); border-color: rgba(226,232,240,0.3); color: var(--metal); }
+.elem-water .pillar-stem, .elem-water .pillar-branch { background: rgba(96,165,250,0.12); border-color: rgba(96,165,250,0.3); color: var(--water); }
+
+/* ===== Elements Bar ===== */
+.elements-container { margin-bottom: 2rem; }
+.elements-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.element-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.element-name {
+  width: 80px;
+  font-size: 0.85rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+.element-track {
+  flex: 1;
+  height: 18px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.element-fill {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.8s ease;
+}
+.element-count {
+  width: 24px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  flex-shrink: 0;
+}
+.fill-wood { background: linear-gradient(90deg, #4ade80, #86efac); }
+.fill-fire { background: linear-gradient(90deg, #f87171, #fca5a5); }
+.fill-earth { background: linear-gradient(90deg, #fbbf24, #fde68a); }
+.fill-metal { background: linear-gradient(90deg, #94a3b8, #e2e8f0); }
+.fill-water { background: linear-gradient(90deg, #60a5fa, #93c5fd); }
+
+/* ===== Day Master ===== */
+.daymaster-container { margin-bottom: 2rem; }
+.daymaster-box {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+.daymaster-char {
+  font-size: 3rem;
+  font-weight: 700;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+}
+.daymaster-desc { line-height: 1.8; }
+.daymaster-title { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin-bottom: 0.3rem; }
+.daymaster-detail { font-size: 0.9rem; color: var(--muted); }
+
+/* ===== Fortune Grid ===== */
+.fortune-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.fortune-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.fortune-card:hover {
+  border-color: rgba(167,139,250,0.4);
+  transform: translateY(-2px);
+}
+.fortune-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.fortune-card h4 {
+  font-size: 0.9rem;
+  color: var(--gold);
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.03em;
+}
+.fortune-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.7; }
+
+/* ===== Lucky Section ===== */
+.lucky-section { margin-bottom: 2rem; }
+.lucky-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.lucky-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.75rem 1.1rem;
+  min-width: 90px;
+  flex: 1;
+}
+.lucky-item-label { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
+.lucky-item-value { font-size: 1rem; font-weight: 600; color: var(--text); }
+
+/* ===== Annual Fortune ===== */
+.annual-section { margin-bottom: 1.5rem; }
+.annual-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  font-size: 0.92rem;
+  line-height: 1.9;
+  color: var(--muted);
+}
+.annual-box strong { color: var(--accent); }
+
+/* ===== Disclaimer ===== */
+.disclaimer {
+  font-size: 0.78rem;
+  color: rgba(148,163,184,0.5);
+  text-align: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== Utility ===== */
+.hidden { display: none !important; }
+
+/* ===== Footer ===== */
+footer {
+  position: relative; z-index: 10;
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+  .logo { font-size: 1.8rem; }
+  .card { padding: 1.25rem; }
+  .pillars { gap: 0.5rem; }
+  .pillar-stem, .pillar-branch { width: 60px; height: 60px; font-size: 1.2rem; }
+  .fortune-grid { grid-template-columns: 1fr 1fr; }
+}

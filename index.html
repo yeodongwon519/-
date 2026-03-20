@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>사주 풀이 - 나의 운명을 알아보세요</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="stars"></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">☯ 사주명리</div>
+      <p class="subtitle">생년월일시로 보는 사주 풀이</p>
+    </div>
+  </header>
+
+  <main>
+    <!-- Input Section -->
+    <section class="card input-section" id="inputSection">
+      <h2>생년월일시 입력</h2>
+      <form id="sajuForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="birthYear">출생년도</label>
+            <input type="number" id="birthYear" placeholder="예: 1990" min="1900" max="2025" required />
+          </div>
+          <div class="form-group">
+            <label for="birthMonth">출생월</label>
+            <select id="birthMonth" required>
+              <option value="">월 선택</option>
+              <option value="1">1월</option><option value="2">2월</option>
+              <option value="3">3월</option><option value="4">4월</option>
+              <option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option>
+              <option value="9">9월</option><option value="10">10월</option>
+              <option value="11">11월</option><option value="12">12월</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="birthDay">출생일</label>
+            <select id="birthDay" required>
+              <option value="">일 선택</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="birthHour">출생시간 <span class="optional">(선택)</span></label>
+            <select id="birthHour">
+              <option value="-1">모름</option>
+              <option value="0">자시 (23:00~01:00)</option>
+              <option value="1">축시 (01:00~03:00)</option>
+              <option value="2">인시 (03:00~05:00)</option>
+              <option value="3">묘시 (05:00~07:00)</option>
+              <option value="4">진시 (07:00~09:00)</option>
+              <option value="5">사시 (09:00~11:00)</option>
+              <option value="6">오시 (11:00~13:00)</option>
+              <option value="7">미시 (13:00~15:00)</option>
+              <option value="8">신시 (15:00~17:00)</option>
+              <option value="9">유시 (17:00~19:00)</option>
+              <option value="10">술시 (19:00~21:00)</option>
+              <option value="11">해시 (21:00~23:00)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="gender">성별</label>
+            <select id="gender" required>
+              <option value="">선택</option>
+              <option value="male">남성</option>
+              <option value="female">여성</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">🔮 사주 풀이 보기</button>
+      </form>
+    </section>
+
+    <!-- Result Section -->
+    <section class="card result-section hidden" id="resultSection">
+      <div class="result-header">
+        <h2>나의 사주 풀이</h2>
+        <button class="btn-secondary" id="resetBtn">다시 입력</button>
+      </div>
+
+      <!-- Pillars -->
+      <div class="pillars-container">
+        <h3>사주 (四柱)</h3>
+        <div class="pillars" id="pillars"></div>
+      </div>
+
+      <!-- Five Elements -->
+      <div class="elements-container">
+        <h3>오행 분석 (五行)</h3>
+        <div class="elements-bar" id="elementsBar"></div>
+      </div>
+
+      <!-- Day Master -->
+      <div class="daymaster-container" id="daymasterContainer">
+        <h3>일간 (日干) — 나의 본질</h3>
+        <div id="daymasterInfo"></div>
+      </div>
+
+      <!-- Fortune Sections -->
+      <div class="fortune-grid">
+        <div class="fortune-card" id="personalityCard">
+          <div class="fortune-icon">🌟</div>
+          <h4>성격 & 기질</h4>
+          <p id="personalityText"></p>
+        </div>
+        <div class="fortune-card" id="loveCard">
+          <div class="fortune-icon">❤️</div>
+          <h4>연애 & 인연</h4>
+          <p id="loveText"></p>
+        </div>
+        <div class="fortune-card" id="careerCard">
+          <div class="fortune-icon">💼</div>
+          <h4>직업 & 재물</h4>
+          <p id="careerText"></p>
+        </div>
+        <div class="fortune-card" id="healthCard">
+          <div class="fortune-icon">🌿</div>
+          <h4>건강 & 주의</h4>
+          <p id="healthText"></p>
+        </div>
+      </div>
+
+      <!-- Lucky Info -->
+      <div class="lucky-section">
+        <h3>행운의 정보</h3>
+        <div class="lucky-grid" id="luckyGrid"></div>
+      </div>
+
+      <!-- Annual Fortune -->
+      <div class="annual-section">
+        <h3>2026년 운세</h3>
+        <div class="annual-box" id="annualFortune"></div>
+      </div>
+
+      <div class="disclaimer">
+        ※ 본 사주풀이는 전통 명리학에 기반한 참고용 콘텐츠입니다.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2026 사주명리 | 전통 명리학 기반 사주 풀이 서비스</p>
+  </footer>
+
+  <script src="saju.js"></script>
+</body>
+</html>
