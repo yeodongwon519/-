@@ -213,9 +213,11 @@ def generate_voiceover(script: str, api_key: str, voice_id: str, save_path: Path
 def get_audio_duration_elevenlabs(audio_path: Path) -> float:
     """생성된 오디오 파일의 재생 시간 측정"""
     try:
-        from moviepy.editor import AudioFileClip
-        with AudioFileClip(str(audio_path)) as audio:
-            return audio.duration
+        from moviepy import AudioFileClip
+        audio = AudioFileClip(str(audio_path))
+        dur = audio.duration
+        audio.close()
+        return dur
     except Exception:
         # MoviePy 없을 경우 추정값 반환
         file_size = audio_path.stat().st_size
@@ -230,7 +232,7 @@ def get_audio_duration_elevenlabs(audio_path: Path) -> float:
 def check_moviepy_available() -> bool:
     """MoviePy 및 FFmpeg 사용 가능 여부 확인"""
     try:
-        import moviepy.editor
+        import moviepy
         import subprocess
         result = subprocess.run(
             ["ffmpeg", "-version"],
@@ -242,39 +244,36 @@ def check_moviepy_available() -> bool:
 
 
 def create_subtitle_clip(text: str, duration: float, video_size: tuple):
-    """자막 클립 생성"""
-    from moviepy.editor import TextClip, CompositeVideoClip, ColorClip
+    """자막 클립 생성 (MoviePy 2.x API)"""
+    from moviepy import TextClip
 
     try:
-        # 배경 박스 (반투명)
         txt_clip = TextClip(
-            txt=text,
-            fontsize=55,
+            text=text,
+            font_size=55,
             color="white",
             font="DejaVu-Sans-Bold",
             stroke_color="black",
             stroke_width=3,
             method="caption",
             size=(video_size[0] - 80, None),
-            align="center",
-        ).set_duration(duration)
-
-        # 자막 위치: 하단 20% 위치
-        txt_clip = txt_clip.set_position(("center", video_size[1] * 0.72))
+            text_align="center",
+            duration=duration,
+        )
+        txt_clip = txt_clip.with_position(("center", video_size[1] * 0.72))
         return txt_clip
 
     except Exception:
-        # 폰트 문제 시 기본 설정으로 재시도
         try:
             txt_clip = TextClip(
-                txt=text,
-                fontsize=45,
+                text=text,
+                font_size=45,
                 color="white",
                 stroke_color="black",
                 stroke_width=2,
-                method="label",
-            ).set_duration(duration)
-            txt_clip = txt_clip.set_position(("center", video_size[1] * 0.72))
+                duration=duration,
+            )
+            txt_clip = txt_clip.with_position(("center", video_size[1] * 0.72))
             return txt_clip
         except Exception as e:
             st.warning(f"자막 생성 건너뜀: {e}")
@@ -289,8 +288,8 @@ def create_shorts_video(
     total_duration: float,
     progress_callback=None,
 ) -> Path:
-    """숏츠 영상 최종 생성"""
-    from moviepy.editor import (
+    """숏츠 영상 최종 생성 (MoviePy 2.x API)"""
+    from moviepy import (
         VideoFileClip, AudioFileClip, CompositeVideoClip,
         concatenate_videoclips, ColorClip
     )
@@ -314,7 +313,7 @@ def create_shorts_video(
                 # 가로가 더 길면 → 좌우 크롭
                 new_w = int(clip.h * target_ratio)
                 x_center = clip.w / 2
-                clip = clip.crop(
+                clip = clip.cropped(
                     x1=x_center - new_w / 2,
                     x2=x_center + new_w / 2,
                 )
@@ -322,21 +321,22 @@ def create_shorts_video(
                 # 세로가 더 길면 → 상하 크롭
                 new_h = int(clip.w / target_ratio)
                 y_center = clip.h / 2
-                clip = clip.crop(
+                clip = clip.cropped(
                     y1=y_center - new_h / 2,
                     y2=y_center + new_h / 2,
                 )
 
             # 해상도 통일
-            clip = clip.resize((VIDEO_WIDTH, VIDEO_HEIGHT))
+            clip = clip.resized((VIDEO_WIDTH, VIDEO_HEIGHT))
 
             # 클립 길이 조정
             if clip.duration > clip_duration:
-                clip = clip.subclip(0, clip_duration)
+                clip = clip.subclipped(0, clip_duration)
             elif clip.duration < clip_duration:
-                # 짧은 클립은 반복
+                # 짧은 클립은 반복 (with_end로 루프 효과)
                 loops = int(clip_duration / clip.duration) + 1
-                clip = clip.loop(loops).subclip(0, clip_duration)
+                repeated = concatenate_videoclips([clip] * loops)
+                clip = repeated.subclipped(0, clip_duration)
 
             clips.append(clip)
 
@@ -346,7 +346,7 @@ def create_shorts_video(
             black = ColorClip(
                 size=(VIDEO_WIDTH, VIDEO_HEIGHT),
                 color=[0, 0, 0],
-                duration=clip_duration
+                duration=clip_duration,
             )
             clips.append(black)
 
@@ -361,13 +361,13 @@ def create_shorts_video(
 
     # 전체 길이를 오디오 길이에 맞춤
     if final_video.duration > total_duration:
-        final_video = final_video.subclip(0, total_duration)
+        final_video = final_video.subclipped(0, total_duration)
 
     # 오디오 추가
     audio = AudioFileClip(str(audio_path))
     if audio.duration > final_video.duration:
-        audio = audio.subclip(0, final_video.duration)
-    final_video = final_video.set_audio(audio)
+        audio = audio.subclipped(0, final_video.duration)
+    final_video = final_video.with_audio(audio)
 
     if progress_callback:
         progress_callback(0.75, "자막 합성 중...")
@@ -385,7 +385,7 @@ def create_shorts_video(
                     (VIDEO_WIDTH, VIDEO_HEIGHT),
                 )
                 if sub_clip:
-                    sub_clip = sub_clip.set_start(start_t)
+                    sub_clip = sub_clip.with_start(start_t)
                     subtitle_clips.append(sub_clip)
 
     if subtitle_clips:
