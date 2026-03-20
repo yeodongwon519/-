@@ -1,6 +1,6 @@
 """
 AI Shorts Maker - 자동 숏츠 영상 생성 웹앱
-Streamlit + MoviePy + Pexels API + ElevenLabs API
+Streamlit + MoviePy + Pexels API + gTTS
 """
 
 import os
@@ -36,9 +36,6 @@ TEMP_DIR = Path("temp")
 TEMP_DIR.mkdir(exist_ok=True)
 
 PEXELS_API_URL = "https://api.pexels.com/videos/search"
-ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1"
-
-DEFAULT_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")  # Rachel
 
 # 9:16 비율 (Shorts 표준)
 VIDEO_WIDTH = 1080
@@ -169,43 +166,16 @@ def download_pexels_video(video_info: dict, save_path: Path) -> Path:
 
 
 # ─────────────────────────────────────────────
-# ElevenLabs API 함수
+# gTTS 함수 (무료 Google TTS)
 # ─────────────────────────────────────────────
 
-def generate_voiceover(script: str, api_key: str, voice_id: str, save_path: Path) -> Path:
-    """ElevenLabs TTS로 음성 생성"""
-    url = f"{ELEVENLABS_API_URL}/text-to-speech/{voice_id}"
-    headers = {
-        "xi-api-key": api_key,
-        "Content-Type": "application/json",
-        "Accept": "audio/mpeg",
-    }
-    payload = {
-        "text": script,
-        "model_id": "eleven_multilingual_v2",
-        "voice_settings": {
-            "stability": 0.5,
-            "similarity_boost": 0.75,
-            "style": 0.0,
-            "use_speaker_boost": True,
-        },
-    }
-
+def generate_voiceover(script: str, lang: str, save_path: Path) -> Path:
+    """gTTS로 음성 생성 (무료, API 키 불필요)"""
     try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=60)
-        if resp.status_code == 401:
-            raise ValueError("ElevenLabs API 키가 유효하지 않습니다.")
-        if resp.status_code == 422:
-            raise ValueError("ElevenLabs: 텍스트가 너무 길거나 형식이 잘못되었습니다.")
-        resp.raise_for_status()
-
-        with open(save_path, "wb") as f:
-            f.write(resp.content)
+        from gtts import gTTS
+        tts = gTTS(text=script, lang=lang)
+        tts.save(str(save_path))
         return save_path
-    except ValueError:
-        raise
-    except requests.exceptions.Timeout:
-        raise RuntimeError("ElevenLabs API 요청 시간이 초과되었습니다.")
     except Exception as e:
         raise RuntimeError(f"음성 생성 실패: {e}")
 
@@ -438,28 +408,22 @@ def render_sidebar():
             help="https://www.pexels.com/api/ 에서 무료로 발급",
         )
 
-        elevenlabs_key = st.text_input(
-            "ElevenLabs API Key",
-            value=os.getenv("ELEVENLABS_API_KEY", ""),
-            type="password",
-            help="https://elevenlabs.io/ 에서 발급",
-        )
-
         st.markdown("---")
         st.subheader("🎙️ 음성 설정")
+        st.caption("✅ Google TTS 사용 중 (무료, API 키 불필요)")
 
-        voice_options = {
-            "Rachel (여성, 미국)": "21m00Tcm4TlvDq8ikWAM",
-            "Drew (남성, 미국)": "29vD33N1CtxCmqQRPOHJ",
-            "Clyde (남성, 영국)": "2EiwWnXFnvU5JabPnv8n",
-            "Bella (여성, 미국)": "EXAVITQu4vr4xnSDxMaL",
+        lang_options = {
+            "한국어": "ko",
+            "영어 (미국)": "en",
+            "일본어": "ja",
+            "중국어": "zh-CN",
         }
 
-        selected_voice_name = st.selectbox(
-            "TTS 음성 선택",
-            options=list(voice_options.keys()),
+        selected_lang_name = st.selectbox(
+            "TTS 언어 선택",
+            options=list(lang_options.keys()),
         )
-        voice_id = voice_options[selected_voice_name]
+        voice_id = lang_options[selected_lang_name]
 
         st.markdown("---")
         st.subheader("ℹ️ 시스템 상태")
@@ -480,7 +444,7 @@ def render_sidebar():
         st.markdown("---")
         st.caption("AI Shorts Maker v1.0")
 
-    return pexels_key, elevenlabs_key, voice_id
+    return pexels_key, voice_id
 
 
 def split_script_sentences(script: str) -> list[str]:
@@ -510,13 +474,13 @@ def main():
         st.session_state.generation_error = None
 
     # 사이드바
-    pexels_key, elevenlabs_key, voice_id = render_sidebar()
+    pexels_key, voice_id = render_sidebar()
 
     # 메인 헤더
     st.title("🎬 AI Shorts Maker")
     st.markdown(
         "스크립트를 입력하면 **9:16 숏츠 영상**을 자동으로 생성합니다.  \n"
-        "Pexels 영상 + ElevenLabs 음성 + 자동 자막을 합성합니다."
+        "Pexels 영상 + Google TTS 음성 + 자동 자막을 합성합니다."
     )
     st.markdown("---")
 
@@ -588,8 +552,6 @@ def main():
             errors.append("스크립트를 입력해주세요.")
         if not pexels_key.strip():
             errors.append("Pexels API Key를 사이드바에 입력해주세요.")
-        if not elevenlabs_key.strip():
-            errors.append("ElevenLabs API Key를 사이드바에 입력해주세요.")
         if not check_moviepy_available():
             errors.append(
                 "FFmpeg가 설치되지 않았습니다. 사이드바의 설치 가이드를 참고하세요."
@@ -615,10 +577,10 @@ def main():
             keywords = extract_keywords(script)
             sentences = split_script_sentences(script)
 
-            # 2단계: ElevenLabs 음성 생성
-            update_progress(0.1, "AI 음성 생성 중... (ElevenLabs)")
+            # 2단계: gTTS 음성 생성
+            update_progress(0.1, "AI 음성 생성 중... (Google TTS)")
             audio_path = session_dir / "voiceover.mp3"
-            generate_voiceover(script, elevenlabs_key, voice_id, audio_path)
+            generate_voiceover(script, voice_id, audio_path)
 
             # 3단계: 음성 길이 측정
             update_progress(0.3, "오디오 분석 중...")
@@ -708,7 +670,7 @@ def main():
 ### 시작하기
 
 1. **API 키 설정**
-   - 좌측 사이드바에 Pexels API Key와 ElevenLabs API Key를 입력합니다.
+   - 좌측 사이드바에 Pexels API Key를 입력합니다.
    - 또는 `.env` 파일에 키를 저장하면 자동으로 불러옵니다.
 
 2. **스크립트 작성**
@@ -721,7 +683,7 @@ def main():
 
 ### API 키 발급
 - **Pexels**: [https://www.pexels.com/api/](https://www.pexels.com/api/) (무료)
-- **ElevenLabs**: [https://elevenlabs.io/](https://elevenlabs.io/) (월 10,000자 무료)
+- **Google TTS**: API 키 불필요 (완전 무료)
 
 ### 주의사항
 - FFmpeg가 설치되어 있어야 영상 합성이 가능합니다.
