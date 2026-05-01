@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Project
+cache/
+output/
+models/
+*.wav
+*.mp4
+*.mov
+*.mkv
+!tests/fixtures/**/*.mp4
+!tests/fixtures/**/*.wav
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
