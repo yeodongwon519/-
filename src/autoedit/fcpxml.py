@@ -1,11 +1,32 @@
 from __future__ import annotations
 
 import logging
+from fractions import Fraction
 from pathlib import Path
 
 from autoedit.timeline import Timeline
 
 log = logging.getLogger(__name__)
+
+# The otio-fcpx-xml-adapter looks up frameDuration in a dict keyed by
+# rounded float fps values. Pass the canonical float so the lookup hits.
+_CANONICAL_RATE: dict[Fraction, float] = {
+    Fraction(24000, 1001): 23.98,
+    Fraction(24, 1): 24.0,
+    Fraction(25, 1): 25.0,
+    Fraction(30000, 1001): 29.97,
+    Fraction(30, 1): 30.0,
+    Fraction(50, 1): 50.0,
+    Fraction(60000, 1001): 59.94,
+    Fraction(60, 1): 60.0,
+}
+
+
+def _quantize_rate(rate: Fraction) -> float:
+    if rate in _CANONICAL_RATE:
+        return _CANONICAL_RATE[rate]
+    log.warning("Non-canonical fps %s; FCPXML may need manual format fix.", rate)
+    return float(rate)
 
 
 def write_fcpxml(timeline: Timeline, output: Path) -> Path:
@@ -16,21 +37,22 @@ def write_fcpxml(timeline: Timeline, output: Path) -> Path:
     import opentimelineio as otio
 
     rate = timeline.fps
-    rate_float = float(rate)
+    rate_float = _quantize_rate(rate)
     tl = otio.schema.Timeline(name=output.stem)
     track = otio.schema.Track(name="V1", kind=otio.schema.TrackKind.Video)
     tl.tracks.append(track)
-    audio_track = otio.schema.Track(name="A1", kind=otio.schema.TrackKind.Audio)
-    tl.tracks.append(audio_track)
 
+    # Reuse the same media reference per source path so FCPXML resources stay deduped.
+    refs: dict[Path, "otio.schema.ExternalReference"] = {}
     for keep, meta in timeline.clips:
-        media_ref = otio.schema.ExternalReference(
-            target_url=keep.source.resolve().as_uri(),
-            available_range=otio.opentime.TimeRange(
-                start_time=otio.opentime.RationalTime(0, rate_float),
-                duration=otio.opentime.RationalTime.from_seconds(meta.duration, rate_float),
-            ),
-        )
+        if keep.source not in refs:
+            refs[keep.source] = otio.schema.ExternalReference(
+                target_url=keep.source.resolve().as_uri(),
+                available_range=otio.opentime.TimeRange(
+                    start_time=otio.opentime.RationalTime(0, rate_float),
+                    duration=otio.opentime.RationalTime.from_seconds(meta.duration, rate_float),
+                ),
+            )
         source_range = otio.opentime.TimeRange(
             start_time=otio.opentime.RationalTime.from_seconds(keep.source_start, rate_float),
             duration=otio.opentime.RationalTime.from_seconds(
@@ -39,17 +61,10 @@ def write_fcpxml(timeline: Timeline, output: Path) -> Path:
         )
         clip = otio.schema.Clip(
             name=f"{keep.source.stem}_{keep.reason}",
-            media_reference=media_ref,
+            media_reference=refs[keep.source],
             source_range=source_range,
         )
         track.append(clip)
-        if meta.has_audio:
-            audio_clip = otio.schema.Clip(
-                name=f"{keep.source.stem}_{keep.reason}_audio",
-                media_reference=media_ref.deepcopy(),
-                source_range=source_range,
-            )
-            audio_track.append(audio_clip)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     adapter = _pick_fcpxml_adapter()

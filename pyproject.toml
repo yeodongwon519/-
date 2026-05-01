@@ -15,6 +15,7 @@ dependencies = [
     "faster-whisper>=1.0",
     "ffmpeg-python>=0.2",
     "opentimelineio>=0.17",
+    "otio-fcpx-xml-adapter>=1.0",
     "rapidfuzz>=3.9",
     "jamo>=0.4",
     "tomli>=2.0; python_version<'3.11'",
