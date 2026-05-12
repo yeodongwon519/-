@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>비즈니스 대시보드</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">Bizboard</span>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="today">
+          <span class="nav-icon">☀</span><span>오늘</span>
+        </button>
+        <button class="nav-item" data-view="businesses">
+          <span class="nav-icon">▤</span><span>사업</span>
+        </button>
+        <button class="nav-item" data-view="routines">
+          <span class="nav-icon">↻</span><span>루틴</span>
+        </button>
+        <button class="nav-item" data-view="schedule">
+          <span class="nav-icon">▦</span><span>주간 일정</span>
+        </button>
+        <button class="nav-item" data-view="stats">
+          <span class="nav-icon">▲</span><span>한눈에 보기</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="exportBtn" class="ghost-btn" title="JSON으로 백업">내보내기</button>
+        <button id="importBtn" class="ghost-btn" title="JSON에서 복원">불러오기</button>
+        <input type="file" id="importFile" accept="application/json" hidden />
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="topTitle">오늘</h1>
+          <p id="topSubtitle" class="muted"></p>
+        </div>
+        <div class="top-actions">
+          <button id="quickAddBtn" class="primary-btn">+ 빠른 추가</button>
+        </div>
+      </header>
+
+      <!-- TODAY VIEW -->
+      <section class="view active" data-view="today">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">오늘 할 일</div>
+            <div class="stat-value"><span id="statTodoDone">0</span><span class="muted">/<span id="statTodoTotal">0</span></span></div>
+            <div class="progress"><div class="progress-fill" id="statTodoBar"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">오늘 루틴</div>
+            <div class="stat-value"><span id="statRoutineDone">0</span><span class="muted">/<span id="statRoutineTotal">0</span></span></div>
+            <div class="progress"><div class="progress-fill" id="statRoutineBar"></div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">진행 중 사업</div>
+            <div class="stat-value" id="statBizCount">0</div>
+            <div class="muted small" id="statBizStatus">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">오늘의 집중</div>
+            <div class="stat-value small" id="statFocus">—</div>
+            <div class="muted small">가장 진도 빠른 영역</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>오늘 할 일</h2>
+              <button class="ghost-btn" data-action="add-todo">+ 추가</button>
+            </div>
+            <ul class="list" id="todayTodoList"><li class="empty">아직 등록된 할 일이 없어요. + 추가를 눌러보세요.</li></ul>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2>오늘의 루틴</h2>
+              <button class="ghost-btn" data-action="add-routine">+ 추가</button>
+            </div>
+            <ul class="list" id="todayRoutineList"><li class="empty">루틴이 없어요. 매일/매주 반복할 일을 추가해보세요.</li></ul>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>오늘 시간표</h2>
+            <button class="ghost-btn" data-action="add-schedule">+ 일정 추가</button>
+          </div>
+          <div class="timeline" id="todayTimeline"></div>
+        </div>
+      </section>
+
+      <!-- BUSINESSES VIEW -->
+      <section class="view" data-view="businesses">
+        <div class="view-toolbar">
+          <p class="muted">사업별 진행 상황을 한눈에. 카드를 클릭해 상세를 편집하세요.</p>
+          <button class="primary-btn" data-action="add-business">+ 사업 추가</button>
+        </div>
+        <div class="biz-grid" id="bizGrid"></div>
+      </section>
+
+      <!-- ROUTINES VIEW -->
+      <section class="view" data-view="routines">
+        <div class="view-toolbar">
+          <p class="muted">매일·매주 반복할 일을 등록해두면 오늘 화면에 자동으로 떠요.</p>
+          <button class="primary-btn" data-action="add-routine">+ 루틴 추가</button>
+        </div>
+        <div class="panel">
+          <ul class="list big" id="routineList"></ul>
+        </div>
+      </section>
+
+      <!-- SCHEDULE VIEW -->
+      <section class="view" data-view="schedule">
+        <div class="view-toolbar">
+          <div class="week-nav">
+            <button class="ghost-btn" id="weekPrev">‹</button>
+            <span id="weekLabel" class="muted"></span>
+            <button class="ghost-btn" id="weekNext">›</button>
+            <button class="ghost-btn" id="weekToday">오늘</button>
+          </div>
+          <button class="primary-btn" data-action="add-schedule">+ 일정 추가</button>
+        </div>
+        <div class="week-grid" id="weekGrid"></div>
+      </section>
+
+      <!-- STATS VIEW -->
+      <section class="view" data-view="stats">
+        <div class="stat-row">
+          <div class="panel">
+            <div class="panel-head"><h2>사업별 진척도</h2></div>
+            <div id="progressChart" class="bar-chart"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>주간 시간 배분</h2></div>
+            <div class="donut-wrap">
+              <svg id="donut" viewBox="0 0 200 200"></svg>
+              <ul id="donutLegend" class="legend"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>루틴 연속 달성</h2></div>
+          <div id="streakGrid" class="streak-grid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop hidden" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">제목</h3>
+        <button class="icon-btn" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-foot">
+        <button class="ghost-btn" id="modalCancel">취소</button>
+        <button class="primary-btn" id="modalSave">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
