@@ -1,0 +1,14 @@
+Windows Registry Editor Version 5.00
+
+; 서명되지 않은 CEP 확장(개발 패널)을 허용합니다.
+; 프리미어 2024 = CEP 11, 2025 = CEP 12 를 모두 커버합니다.
+; 더블클릭 후 "예"를 누르고 프리미어를 재시작하세요.
+
+[HKEY_CURRENT_USER\Software\Adobe\CSXS.11]
+"PlayerDebugMode"="1"
+
+[HKEY_CURRENT_USER\Software\Adobe\CSXS.12]
+"PlayerDebugMode"="1"
+
+[HKEY_CURRENT_USER\Software\Adobe\CSXS.10]
+"PlayerDebugMode"="1"
