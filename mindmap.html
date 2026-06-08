@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MindFlow — 마인드맵 & 메모</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --panel:#ffffff;
+    --panel-2:#f0f2f8;
+    --line:#d5dae6;
+    --text:#1f2430;
+    --text-soft:#6b7280;
+    --accent:#4f6ef7;
+    --accent-soft:#e8edff;
+    --shadow:0 6px 20px rgba(40,55,100,.10);
+    --conn:#b9c2d6;
+  }
+  html[data-theme="dark"]{
+    --bg:#11141c;
+    --panel:#1b2030;
+    --panel-2:#232a3d;
+    --line:#333c54;
+    --text:#e8ebf4;
+    --text-soft:#9aa3bd;
+    --accent:#6d83ff;
+    --accent-soft:#2a3358;
+    --shadow:0 8px 26px rgba(0,0,0,.45);
+    --conn:#465174;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    background:var(--bg); color:var(--text);
+    overflow:hidden;
+    -webkit-user-select:none; user-select:none;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:fixed; top:0; left:0; right:0; height:54px; z-index:30;
+    display:flex; align-items:center; gap:6px; padding:0 14px;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    box-shadow:0 1px 0 rgba(0,0,0,.02);
+  }
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px;margin-right:8px;white-space:nowrap;}
+  .brand .dot{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#4f6ef7,#8a5cf6);display:inline-block;}
+  .brand small{font-weight:500;color:var(--text-soft);font-size:12px;}
+  .spacer{flex:1;}
+  .tool{
+    display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    height:34px; padding:0 11px; border-radius:9px; cursor:pointer; font-size:13px;
+    transition:.12s; white-space:nowrap;
+  }
+  .tool:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .tool:active{transform:translateY(1px);}
+  .tool.icon{padding:0 9px;font-size:15px;}
+  .tool:disabled{opacity:.4;cursor:default;}
+  .sep{width:1px;height:26px;background:var(--line);margin:0 4px;}
+  .swatch{width:18px;height:18px;border-radius:5px;border:2px solid rgba(0,0,0,.08);cursor:pointer;}
+
+  /* ---------- Canvas ---------- */
+  #stage{position:fixed;inset:54px 0 0 0;overflow:hidden;cursor:grab;background:
+    radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
+    background-size:26px 26px;}
+  #stage.panning{cursor:grabbing;}
+  #world{position:absolute;left:0;top:0;transform-origin:0 0;}
+  #links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;}
+  #links path{fill:none;stroke:var(--conn);stroke-width:2.4;}
+
+  .node{
+    position:absolute; max-width:260px; min-width:34px;
+    padding:9px 14px; border-radius:12px;
+    background:var(--panel); color:var(--text);
+    border:2px solid var(--line); box-shadow:var(--shadow);
+    font-size:14px; line-height:1.35; cursor:default;
+    white-space:pre-wrap; word-break:break-word;
+    transition:border-color .12s, box-shadow .12s;
+  }
+  .node.root{font-size:17px;font-weight:700;padding:12px 20px;border-radius:16px;
+    background:linear-gradient(135deg,var(--accent),#8a5cf6);color:#fff;border-color:transparent;}
+  .node.lvl1{font-weight:600;}
+  .node.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow);}
+  .node.editing{cursor:text;}
+  .node[contenteditable="true"]{outline:none;cursor:text;-webkit-user-select:text;user-select:text;}
+  .node .badge{position:absolute;top:-9px;right:-9px;background:var(--panel);border:1px solid var(--line);
+    border-radius:50%;width:20px;height:20px;font-size:11px;display:none;align-items:center;justify-content:center;}
+  .node.has-note .badge{display:flex;}
+  /* collapse toggle */
+  .toggle{position:absolute;width:18px;height:18px;border-radius:50%;
+    background:var(--panel);border:2px solid var(--conn);color:var(--text-soft);
+    font-size:11px;line-height:14px;text-align:center;cursor:pointer;display:none;z-index:2;
+    font-weight:700;}
+  .node.has-children .toggle{display:block;}
+  .node.collapsed .toggle{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* ---------- Notes side panel ---------- */
+  #notes{
+    position:fixed; top:54px; right:0; bottom:0; width:330px; z-index:25;
+    background:var(--panel); border-left:1px solid var(--line);
+    display:flex; flex-direction:column; transform:translateX(100%);
+    transition:transform .22s ease; box-shadow:-6px 0 24px rgba(0,0,0,.06);
+  }
+  #notes.open{transform:translateX(0);}
+  #notes header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+  #notes header h3{margin:0;font-size:14px;flex:1;}
+  #notes header .x{cursor:pointer;color:var(--text-soft);font-size:18px;}
+  #noteTitle{font-size:12px;color:var(--text-soft);padding:10px 16px 0;}
+  #noteTitle b{color:var(--text);}
+  #noteArea{
+    flex:1;margin:10px 16px 16px;resize:none;border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-size:14px;line-height:1.6;background:var(--panel-2);color:var(--text);
+    font-family:inherit;-webkit-user-select:text;user-select:text;
+  }
+  #noteArea:focus{outline:none;border-color:var(--accent);}
+  .colorrow{display:flex;gap:8px;padding:0 16px 14px;flex-wrap:wrap;}
+
+  /* ---------- Hint / help ---------- */
+  #hint{position:fixed;left:14px;bottom:14px;z-index:20;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--text-soft);
+    box-shadow:var(--shadow);max-width:340px;line-height:1.7;}
+  #hint b{color:var(--text);}
+  #hint kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;
+    padding:1px 6px;font-size:11px;color:var(--text);font-family:inherit;}
+  #hint .close{float:right;cursor:pointer;margin-left:8px;}
+
+  #zoombox{position:fixed;right:14px;bottom:14px;z-index:20;display:flex;gap:6px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:var(--shadow);}
+  #zoombox.shift{right:344px;}
+  #zoombox button{width:30px;height:30px;border:none;background:var(--panel-2);border-radius:7px;cursor:pointer;
+    color:var(--text);font-size:16px;}
+  #zoombox button:hover{background:var(--accent-soft);}
+  #zoomval{font-size:12px;color:var(--text-soft);min-width:42px;text-align:center;}
+
+  .file-hidden{display:none;}
+  @media (max-width:640px){
+    .brand small{display:none;}
+    .tool span.lbl{display:none;}
+    #notes{width:100%;}
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>MindFlow <small>마인드맵 · 메모</small></div>
+    <button class="tool" id="addChild">＋ <span class="lbl">하위 주제</span></button>
+    <button class="tool" id="addSibling">↵ <span class="lbl">형제 주제</span></button>
+    <button class="tool icon" id="del" title="삭제 (Delete)">🗑</button>
+    <div class="sep"></div>
+    <button class="tool icon" id="undo" title="실행취소 (Ctrl+Z)">↶</button>
+    <button class="tool icon" id="redo" title="다시실행 (Ctrl+Y)">↷</button>
+    <div class="sep"></div>
+    <button class="tool icon" id="noteBtn" title="메모 (Ctrl+M)">📝</button>
+    <button class="tool icon" id="fit" title="화면 맞춤 (F)">⊡</button>
+    <div class="spacer"></div>
+    <button class="tool" id="newMap">📄 <span class="lbl">새 맵</span></button>
+    <button class="tool" id="exportBtn">⬇ <span class="lbl">내보내기</span></button>
+    <button class="tool" id="importBtn">⬆ <span class="lbl">불러오기</span></button>
+    <button class="tool icon" id="theme" title="테마 전환">🌗</button>
+    <input type="file" id="fileInput" class="file-hidden" accept=".json,application/json" />
+  </div>
+
+  <div id="stage">
+    <div id="world">
+      <svg id="links"></svg>
+    </div>
+  </div>
+
+  <aside id="notes">
+    <header>
+      <h3>메모</h3>
+      <span class="x" id="closeNote">×</span>
+    </header>
+    <div id="noteTitle">선택한 주제: <b id="noteFor">—</b></div>
+    <div class="colorrow" id="colorRow"></div>
+    <textarea id="noteArea" placeholder="이 주제에 대한 메모를 자유롭게 적어보세요…"></textarea>
+  </aside>
+
+  <div id="hint">
+    <span class="close" id="hintClose">×</span>
+    <b>단축키</b><br>
+    <kbd>Tab</kbd> 하위 · <kbd>Enter</kbd> 형제 · <kbd>Del</kbd> 삭제<br>
+    <kbd>F2</kbd>/더블클릭 편집 · <kbd>Space</kbd> 접기 · <kbd>화살표</kbd> 이동<br>
+    <kbd>Ctrl</kbd>+<kbd>Z</kbd> 취소 · 빈 곳 드래그=이동 · 휠=확대
+  </div>
+
+  <div id="zoombox">
+    <button id="zoomOut">−</button>
+    <span id="zoomval">100%</span>
+    <button id="zoomIn">＋</button>
+    <button id="fitBtn" title="맞춤">⊡</button>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Color palette ----------
+  const COLORS = [
+    {name:"기본", v:""},
+    {name:"빨강", v:"#ef4444"},
+    {name:"주황", v:"#f59e0b"},
+    {name:"초록", v:"#10b981"},
+    {name:"파랑", v:"#3b82f6"},
+    {name:"보라", v:"#8b5cf6"},
+    {name:"분홍", v:"#ec4899"},
+    {name:"청록", v:"#14b8a6"},
+  ];
+
+  // ---------- State ----------
+  let uid = 1;
+  const newId = () => "n" + (uid++);
+
+  function makeNode(text){ return {id:newId(), text:text||"새 주제", note:"", color:"", collapsed:false, side:null, children:[]}; }
+
+  let root = null;
+  let selectedId = null;
+  let view = {x:120, y:0, scale:1};
+  const nodeIndex = new Map();   // id -> data
+  const parentIndex = new Map(); // id -> parent data
+  const elIndex = new Map();     // id -> dom el
+
+  const stage = document.getElementById('stage');
+  const world = document.getElementById('world');
+  const svg = document.getElementById('links');
+  const notesEl = document.getElementById('notes');
+  const noteArea = document.getElementById('noteArea');
+  const STORE_KEY = 'mindflow.map.v1';
+
+  // ---------- History (undo/redo) ----------
+  let history = [], hpos = -1, suppress = false;
+  function snapshot(){
+    if(suppress) return;
+    const s = JSON.stringify({root, uid});
+    if(history[hpos] === s) return;
+    history = history.slice(0, hpos+1);
+    history.push(s);
+    if(history.length > 80){ history.shift(); }
+    hpos = history.length - 1;
+    updateUndoButtons();
+    save();
+  }
+  function restore(s){
+    const o = JSON.parse(s);
+    root = o.root; uid = o.uid;
+    if(!nodeExists(selectedId)) selectedId = root.id;
+    reindex(); render(); syncNotes();
+  }
+  function undo(){ if(hpos>0){ hpos--; suppress=true; restore(history[hpos]); suppress=false; updateUndoButtons(); save(); } }
+  function redo(){ if(hpos<history.length-1){ hpos++; suppress=true; restore(history[hpos]); suppress=false; updateUndoButtons(); save(); } }
+  function updateUndoButtons(){
+    document.getElementById('undo').disabled = hpos<=0;
+    document.getElementById('redo').disabled = hpos>=history.length-1;
+  }
+
+  // ---------- Indexing ----------
+  function reindex(){
+    nodeIndex.clear(); parentIndex.clear();
+    (function walk(n,p){ nodeIndex.set(n.id,n); parentIndex.set(n.id,p); n.children.forEach(c=>walk(c,n)); })(root,null);
+  }
+  const nodeExists = id => nodeIndex.has(id);
+
+  // ---------- Persistence ----------
+  let saveTimer=null;
+  function save(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=>{ try{ localStorage.setItem(STORE_KEY, JSON.stringify({root, uid, view})); }catch(e){} }, 250);
+  }
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY);
+      if(raw){ const o=JSON.parse(raw); if(o.root){ root=o.root; uid=o.uid||1; if(o.view) view=o.view; return true; } }
+    }catch(e){}
+    return false;
+  }
+
+  // ---------- Init data ----------
+  function seed(){
+    root = makeNode("중심 생각");
+    const a = makeNode("아이디어"); a.side="right";
+    const b = makeNode("할 일"); b.side="right";
+    const c = makeNode("메모"); c.side="left";
+    a.children.push(makeNode("세부 1"), makeNode("세부 2"));
+    b.children.push(makeNode("오늘"));
+    root.children.push(a,b,c);
+  }
+
+  // ---------- Side assignment for level-1 ----------
+  function dirOf(n){
+    // returns +1 (right) or -1 (left) for any node based on its level-1 ancestor
+    let cur=n, par=parentIndex.get(cur.id);
+    if(!par) return 1; // root
+    while(par && par!==root){ cur=par; par=parentIndex.get(cur.id); }
+    return cur.side==='left' ? -1 : 1;
+  }
+  function pickSide(){
+    let l=0,r=0; root.children.forEach(c=> c.side==='left'?l++:r++);
+    return l<r ? 'left' : 'right';
+  }
+
+  // ---------- Rendering ----------
+  function classFor(n,level){
+    let c='node';
+    if(n===root) c+=' root';
+    else if(level===1) c+=' lvl1';
+    if(n.id===selectedId) c+=' selected';
+    if(n.children.length) c+=' has-children';
+    if(n.collapsed && n.children.length) c+=' collapsed';
+    if(n.note && n.note.trim()) c+=' has-note';
+    return c;
+  }
+
+  function buildDom(){
+    // create/update elements, remove stale
+    const seen=new Set();
+    (function walk(n,level){
+      seen.add(n.id);
+      let el = elIndex.get(n.id);
+      if(!el){
+        el = document.createElement('div');
+        el.dataset.id = n.id;
+        el.innerHTML = '<span class="badge">📝</span><span class="toggle"></span><span class="txt"></span>';
+        world.appendChild(el);
+        elIndex.set(n.id, el);
+        wireNode(el);
+      }
+      el.className = classFor(n,level);
+      el.querySelector('.txt').textContent = n.text;
+      el.querySelector('.toggle').textContent = n.collapsed ? '+' : '–';
+      // color accent
+      if(n!==root){
+        if(n.color){ el.style.borderColor = n.color; }
+        else { el.style.borderColor=''; }
+      }
+      if(!n.collapsed) n.children.forEach(c=>walk(c,level+1));
+    })(root,0);
+
+    // remove elements not seen
+    for(const [id,el] of elIndex){
+      if(!seen.has(id)){ el.remove(); elIndex.delete(id); }
+    }
+  }
+
+  // ---------- Layout (tidy tree, balanced) ----------
+  const HGAP=58, VGAP=18;
+  function measure(n){
+    const el=elIndex.get(n.id);
+    n._w = el.offsetWidth; n._h = el.offsetHeight;
+  }
+  function subtreeH(n){
+    measure(n);
+    if(n.collapsed || !n.children.length){ n._sh=n._h; return n._sh; }
+    let total=0;
+    n.children.forEach((c,i)=>{ total += subtreeH(c); if(i<n.children.length-1) total+=VGAP; });
+    n._sh = Math.max(n._h, total);
+    return n._sh;
+  }
+  function place(n, leftX, cy, dir){
+    n._x=leftX; n._y=cy - n._h/2;
+    if(n.collapsed || !n.children.length) return;
+    let totalH=0;
+    n.children.forEach((c,i)=>{ totalH+=c._sh; if(i<n.children.length-1) totalH+=VGAP; });
+    let startY = cy - totalH/2;
+    n.children.forEach(c=>{
+      const ccy = startY + c._sh/2;
+      const cx = dir>0 ? (leftX + n._w + HGAP) : (leftX - HGAP - c._w);
+      place(c, cx, ccy, dir);
+      startY += c._sh + VGAP;
+    });
+  }
+
+  function layout(){
+    // ensure measures present
+    subtreeH(root);
+    // split level-1
+    const R = root.children.filter(c=>c.side!=='left');
+    const L = root.children.filter(c=>c.side==='left');
+    measure(root);
+    root._x = -root._w/2; root._y = -root._h/2;
+    const rootCy = 0, rootRight = root._x + root._w, rootLeft = root._x;
+    // right side
+    if(!root.collapsed){
+      layoutSide(R, rootRight + HGAP, rootCy, +1);
+      layoutSideLeft(L, rootLeft - HGAP, rootCy);
+    }
+  }
+  function layoutSide(list, x, cy, dir){
+    let total=0; list.forEach((c,i)=>{ total+=c._sh; if(i<list.length-1) total+=VGAP; });
+    let sy = cy - total/2;
+    list.forEach(c=>{ const ccy=sy+c._sh/2; place(c, x, ccy, dir); sy+=c._sh+VGAP; });
+  }
+  function layoutSideLeft(list, rightX, cy){
+    let total=0; list.forEach((c,i)=>{ total+=c._sh; if(i<list.length-1) total+=VGAP; });
+    let sy = cy - total/2;
+    list.forEach(c=>{ const ccy=sy+c._sh/2; place(c, rightX - c._w, ccy, -1); sy+=c._sh+VGAP; });
+  }
+
+  function applyLayout(){
+    let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+    elIndex.forEach((el,id)=>{
+      const n=nodeIndex.get(id); if(!n) return;
+      el.style.left = n._x+'px';
+      el.style.top  = n._y+'px';
+      // toggle position
+      const dir = n===root?1:dirOf(n);
+      const tog = el.querySelector('.toggle');
+      if(n.children.length){
+        if(dir>0){ tog.style.left=(n._w-2)+'px'; tog.style.right='auto'; }
+        else { tog.style.left='-16px'; tog.style.right='auto'; }
+        tog.style.top=(n._h/2-9)+'px';
+      }
+      minX=Math.min(minX,n._x); minY=Math.min(minY,n._y);
+      maxX=Math.max(maxX,n._x+n._w); maxY=Math.max(maxY,n._y+n._h);
+    });
+    drawLinks();
+    world._bounds = {minX,minY,maxX,maxY};
+  }
+
+  function drawLinks(){
+    let d='';
+    (function walk(n){
+      if(n.collapsed) return;
+      const dir = n===root?1:dirOf(n);
+      n.children.forEach(c=>{
+        const cdir = c.side==='left'?-1:(n===root?1:dir);
+        // parent anchor
+        let px,py,cxp,cyp;
+        if(n===root){
+          px = cdir>0 ? n._x+n._w : n._x;
+          py = n._y+n._h/2;
+        } else {
+          px = dir>0 ? n._x+n._w : n._x;
+          py = n._y+n._h/2;
+        }
+        if(cdir>0){ cxp=c._x; } else { cxp=c._x+c._w; }
+        cyp = c._y+c._h/2;
+        const mx=(px+cxp)/2;
+        d += `M${px},${py} C${mx},${py} ${mx},${cyp} ${cxp},${cyp} `;
+        walk(c);
+      });
+    })(root);
+    svg.innerHTML = `<path d="${d}"></path>`;
+  }
+
+  // ---------- Full render ----------
+  function render(){
+    buildDom();
+    layout();
+    applyLayout();
+    applyView();
+  }
+
+  // ---------- View / transform ----------
+  function applyView(){
+    world.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+    document.getElementById('zoomval').textContent = Math.round(view.scale*100)+'%';
+  }
+  function zoomTo(scale, cx, cy){
+    scale = Math.min(2.4, Math.max(0.25, scale));
+    // keep point (cx,cy in screen) stable
+    const rect = stage.getBoundingClientRect();
+    const sx = (cx - rect.left - view.x)/view.scale;
+    const sy = (cy - rect.top - view.y)/view.scale;
+    view.scale = scale;
+    view.x = cx - rect.left - sx*scale;
+    view.y = cy - rect.top - sy*scale;
+    applyView(); save();
+  }
+  function fit(){
+    const b = world._bounds; if(!b) return;
+    const rect = stage.getBoundingClientRect();
+    const w=b.maxX-b.minX, h=b.maxY-b.minY;
+    const pad=80;
+    const scale = Math.min(2, Math.max(.3, Math.min((rect.width-pad)/w,(rect.height-pad)/h)));
+    view.scale = scale;
+    view.x = rect.width/2 - (b.minX+w/2)*scale;
+    view.y = rect.height/2 - (b.minY+h/2)*scale;
+    applyView(); save();
+  }
+
+  // ---------- Selection ----------
+  function select(id){
+    selectedId = id;
+    elIndex.forEach((el,eid)=> el.classList.toggle('selected', eid===id));
+    syncNotes();
+  }
+
+  // ---------- Mutations ----------
+  function addChild(){
+    const p = nodeIndex.get(selectedId); if(!p) return;
+    const child = makeNode("새 주제");
+    if(p===root) child.side = pickSide();
+    if(p.collapsed){ p.collapsed=false; }
+    p.children.push(child);
+    reindex(); render(); select(child.id); snapshot();
+    startEdit(child.id, true);
+  }
+  function addSibling(){
+    const n = nodeIndex.get(selectedId); if(!n) return;
+    if(n===root){ addChild(); return; }
+    const p = parentIndex.get(n.id);
+    const sib = makeNode("새 주제");
+    if(p===root) sib.side = n.side || pickSide();
+    const idx = p.children.indexOf(n);
+    p.children.splice(idx+1,0,sib);
+    reindex(); render(); select(sib.id); snapshot();
+    startEdit(sib.id, true);
+  }
+  function delNode(){
+    const n = nodeIndex.get(selectedId); if(!n) return;
+    if(n===root){
+      // clear root text only / or reset children? -> ask: just clear children
+      if(n.children.length){ if(confirm('중심 주제는 삭제할 수 없습니다. 모든 하위 주제를 삭제할까요?')){ n.children=[]; } }
+      reindex(); render(); select(root.id); snapshot(); return;
+    }
+    const p = parentIndex.get(n.id);
+    const idx = p.children.indexOf(n);
+    p.children.splice(idx,1);
+    const next = p.children[idx] || p.children[idx-1] || p;
+    reindex(); render(); select(next.id); snapshot();
+  }
+  function toggleCollapse(n){
+    if(!n.children.length) return;
+    n.collapsed=!n.collapsed; reindex(); render(); snapshot();
+  }
+  function setColor(v){
+    const n=nodeIndex.get(selectedId); if(!n||n===root) return;
+    n.color=v; render(); snapshot();
+  }
+
+  // ---------- Inline edit ----------
+  let editing=false;
+  function startEdit(id, selectAll){
+    const el = elIndex.get(id); if(!el) return;
+    const n = nodeIndex.get(id);
+    editing=true;
+    el.classList.add('editing');
+    const txt = el.querySelector('.txt');
+    el.setAttribute('contenteditable','true');
+    // edit only the text span content
+    txt.setAttribute('contenteditable','true');
+    el.removeAttribute('contenteditable');
+    txt.focus();
+    const range=document.createRange();
+    range.selectNodeContents(txt);
+    if(!selectAll){ range.collapse(false); }
+    const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+
+    function finish(commitSibling){
+      txt.removeAttribute('contenteditable');
+      el.classList.remove('editing');
+      editing=false;
+      const val = txt.textContent.trim();
+      n.text = val || "주제";
+      txt.textContent = n.text;
+      render(); select(id);
+      txt.removeEventListener('keydown', onKey);
+      txt.removeEventListener('blur', onBlur);
+      snapshot();
+      if(commitSibling) addSibling();
+    }
+    function onKey(e){
+      if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); finish(true); }
+      else if(e.key==='Escape'){ e.preventDefault(); finish(false); }
+      else if(e.key==='Tab'){ e.preventDefault(); finish(false); setTimeout(addChild,0); }
+      e.stopPropagation();
+    }
+    function onBlur(){ finish(false); }
+    txt.addEventListener('keydown', onKey);
+    txt.addEventListener('blur', onBlur);
+  }
+
+  // ---------- Node DOM wiring ----------
+  function wireNode(el){
+    el.addEventListener('mousedown', e=>{
+      if(editing) return;
+      e.stopPropagation();
+      select(el.dataset.id);
+    });
+    el.addEventListener('dblclick', e=>{
+      e.stopPropagation();
+      startEdit(el.dataset.id, true);
+    });
+    el.querySelector('.toggle').addEventListener('mousedown', e=>{
+      e.stopPropagation(); e.preventDefault();
+      toggleCollapse(nodeIndex.get(el.dataset.id));
+      select(el.dataset.id);
+    });
+  }
+
+  // ---------- Navigation by arrows ----------
+  function navigate(key){
+    const n=nodeIndex.get(selectedId); if(!n) return;
+    const p=parentIndex.get(n.id);
+    const dir = n===root?0:dirOf(n);
+    const go = id => { if(id){ select(id); centerOn(id); } };
+    if(key==='ArrowDown'||key==='ArrowUp'){
+      if(!p) return;
+      const sibs=p.children; const i=sibs.indexOf(n);
+      go((key==='ArrowDown'?sibs[i+1]:sibs[i-1])?.id);
+    } else if(key==='ArrowRight'){
+      if(n===root){ const r=root.children.find(c=>c.side!=='left'); go(r?.id); }
+      else if(dir>0){ if(!n.collapsed && n.children[0]) go(n.children[0].id); }
+      else { go(p?.id); }
+    } else if(key==='ArrowLeft'){
+      if(n===root){ const l=root.children.find(c=>c.side==='left'); go(l?.id); }
+      else if(dir<0){ if(!n.collapsed && n.children[0]) go(n.children[0].id); }
+      else { go(p?.id); }
+    }
+  }
+  function centerOn(id){
+    const n=nodeIndex.get(id); if(!n) return;
+    const rect=stage.getBoundingClientRect();
+    const cx=n._x+n._w/2, cy=n._y+n._h/2;
+    // bring into view if off-screen
+    const sx=cx*view.scale+view.x, sy=cy*view.scale+view.y;
+    const m=60;
+    if(sx<m||sx>rect.width-m||sy<m||sy>rect.height-m){
+      view.x = rect.width/2 - cx*view.scale;
+      view.y = rect.height/2 - cy*view.scale;
+      applyView(); save();
+    }
+  }
+
+  // ---------- Notes panel ----------
+  function openNotes(){ notesEl.classList.add('open'); document.getElementById('zoombox').classList.add('shift'); syncNotes(); }
+  function closeNotes(){ notesEl.classList.remove('open'); document.getElementById('zoombox').classList.remove('shift'); }
+  function toggleNotes(){ notesEl.classList.contains('open')?closeNotes():openNotes(); }
+  function syncNotes(){
+    const n=nodeIndex.get(selectedId);
+    document.getElementById('noteFor').textContent = n? (n.text.length>22?n.text.slice(0,22)+'…':n.text) : '—';
+    if(n){ noteArea.value = n.note||''; noteArea.disabled=false; }
+    else { noteArea.value=''; noteArea.disabled=true; }
+    // color row active state
+    document.querySelectorAll('#colorRow .swatch').forEach(s=>{
+      s.style.outline = (n && n.color===s.dataset.v && n!==root)?'2px solid var(--accent)':'';
+    });
+  }
+  noteArea.addEventListener('input', ()=>{
+    const n=nodeIndex.get(selectedId); if(!n) return;
+    n.note=noteArea.value;
+    const el=elIndex.get(n.id); if(el) el.classList.toggle('has-note', !!n.note.trim());
+    save();
+  });
+  noteArea.addEventListener('blur', snapshot);
+
+  // build color swatches
+  (function(){
+    const row=document.getElementById('colorRow');
+    COLORS.forEach(c=>{
+      const s=document.createElement('div'); s.className='swatch'; s.dataset.v=c.v; s.title=c.name;
+      s.style.background = c.v || 'var(--panel-2)';
+      if(!c.v) s.style.border='2px dashed var(--line)';
+      s.addEventListener('click',()=>setColor(c.v));
+      row.appendChild(s);
+    });
+  })();
+
+  // ---------- Pan & zoom on stage ----------
+  let panning=false, panStart=null;
+  stage.addEventListener('mousedown', e=>{
+    if(e.target.closest('.node')) return;
+    panning=true; stage.classList.add('panning');
+    panStart={x:e.clientX-view.x, y:e.clientY-view.y};
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!panning) return;
+    view.x=e.clientX-panStart.x; view.y=e.clientY-panStart.y;
+    applyView();
+  });
+  window.addEventListener('mouseup', ()=>{ if(panning){ panning=false; stage.classList.remove('panning'); save(); } });
+  stage.addEventListener('wheel', e=>{
+    e.preventDefault();
+    if(e.ctrlKey || true){
+      const factor = e.deltaY<0 ? 1.12 : 0.89;
+      zoomTo(view.scale*factor, e.clientX, e.clientY);
+    }
+  }, {passive:false});
+
+  // ---------- Keyboard ----------
+  window.addEventListener('keydown', e=>{
+    if(editing) return;
+    const tag=(e.target.tagName||'').toLowerCase();
+    if(tag==='textarea'||tag==='input') return;
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redo(); return; }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='m'){ e.preventDefault(); toggleNotes(); return; }
+    if(e.ctrlKey||e.metaKey) return;
+    switch(e.key){
+      case 'Tab': e.preventDefault(); addChild(); break;
+      case 'Enter': e.preventDefault(); addSibling(); break;
+      case 'Delete': case 'Backspace': e.preventDefault(); delNode(); break;
+      case 'F2': e.preventDefault(); startEdit(selectedId, true); break;
+      case ' ': e.preventDefault(); toggleCollapse(nodeIndex.get(selectedId)); break;
+      case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight':
+        e.preventDefault(); navigate(e.key); break;
+      default:
+        // start typing to edit
+        if(e.key.length===1 && !e.altKey){ startEdit(selectedId, true);
+          // let the character go through: set text to char
+          const el=elIndex.get(selectedId); const txt=el && el.querySelector('.txt');
+          if(txt){ txt.textContent=''; }
+        }
+    }
+  });
+
+  // ---------- Toolbar wiring ----------
+  document.getElementById('addChild').onclick=addChild;
+  document.getElementById('addSibling').onclick=addSibling;
+  document.getElementById('del').onclick=delNode;
+  document.getElementById('undo').onclick=undo;
+  document.getElementById('redo').onclick=redo;
+  document.getElementById('noteBtn').onclick=toggleNotes;
+  document.getElementById('closeNote').onclick=closeNotes;
+  document.getElementById('fit').onclick=fit;
+  document.getElementById('fitBtn').onclick=fit;
+  document.getElementById('zoomIn').onclick=()=>{const r=stage.getBoundingClientRect();zoomTo(view.scale*1.15,r.left+r.width/2,r.top+r.height/2);};
+  document.getElementById('zoomOut').onclick=()=>{const r=stage.getBoundingClientRect();zoomTo(view.scale/1.15,r.left+r.width/2,r.top+r.height/2);};
+  document.getElementById('hintClose').onclick=()=>document.getElementById('hint').style.display='none';
+
+  document.getElementById('newMap').onclick=()=>{
+    if(confirm('새 맵을 시작할까요? 현재 내용은 저장된 상태로 대체됩니다. (내보내기로 백업 가능)')){
+      seed(); reindex(); selectedId=root.id; view={x:0,y:0,scale:1};
+      history=[];hpos=-1; render(); fit(); select(root.id); snapshot();
+    }
+  };
+  document.getElementById('theme').onclick=()=>{
+    const html=document.documentElement;
+    const cur=html.getAttribute('data-theme')==='dark'?'':'dark';
+    if(cur) html.setAttribute('data-theme','dark'); else html.removeAttribute('data-theme');
+    localStorage.setItem('mindflow.theme',cur);
+    requestAnimationFrame(()=>{ render(); });
+  };
+
+  // Export / Import
+  document.getElementById('exportBtn').onclick=()=>{
+    const data=JSON.stringify({app:'MindFlow',version:1,root,uid},null,2);
+    const blob=new Blob([data],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    const title=(root.text||'mindmap').replace(/[^\w가-힣\- ]/g,'').slice(0,30)||'mindmap';
+    a.download=title+'.json';
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+  document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
+  document.getElementById('fileInput').addEventListener('change', e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const o=JSON.parse(r.result);
+        if(!o.root) throw 0;
+        root=o.root; uid=o.uid||1;
+        reindex(); selectedId=root.id; history=[];hpos=-1;
+        render(); fit(); select(root.id); snapshot();
+      }catch(err){ alert('불러올 수 없는 파일입니다.'); }
+    };
+    r.readAsText(f);
+    e.target.value='';
+  });
+
+  // ---------- Boot ----------
+  function boot(){
+    if(localStorage.getItem('mindflow.theme')==='dark') document.documentElement.setAttribute('data-theme','dark');
+    if(!load()) seed();
+    reindex();
+    selectedId = root.id;
+    render();
+    if(!localStorage.getItem(STORE_KEY+'.seen')){ fit(); localStorage.setItem(STORE_KEY+'.seen','1'); }
+    select(root.id);
+    history=[JSON.stringify({root,uid})]; hpos=0; updateUndoButtons();
+  }
+  boot();
+  window.addEventListener('resize', ()=>applyView());
+})();
+</script>
+</body>
+</html>
