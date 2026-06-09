@@ -296,7 +296,8 @@
     saveTimer=setTimeout(()=>{
       const m=store.maps[store.current]; if(!m) return;
       m.root=root; m.uid=uid; m.view=view; m.updated=Date.now();
-      persist(); renderMapName();
+      m.name=mapTitle(m);
+      persist(); renderMapName(); if(mapsOpen||mapsPinned) renderMapList();
     },200);
   }
   function loadStore(){
@@ -342,15 +343,18 @@
     if(store.current===id) loadMapInto(store.order[0]);
     else { renderMapList(); persist(); }
   }
+  // The map's name always mirrors its central (root) topic.
+  function mapTitle(m){ return (m && m.root && (m.root.text||'').trim()) || '제목 없음'; }
   function renameMap(id){
     const m=store.maps[id]; if(!m) return;
-    const name=prompt('맵 이름', m.name); if(name===null) return;
-    m.name=name.trim()||m.name; m.updated=Date.now();
+    const name=prompt('중심 주제 이름', (m.root.text||'').trim()); if(name===null) return;
+    m.root.text=name.trim()||m.root.text; m.name=mapTitle(m); m.updated=Date.now();
+    if(id===store.current){ render(); }
     renderMapList(); renderMapName(); persist();
   }
   function renderMapName(){
     const m=store.maps[store.current];
-    document.getElementById('mapNameLabel').textContent = m? m.name : '맵';
+    document.getElementById('mapNameLabel').textContent = m? mapTitle(m) : '맵';
   }
   function fmtDate(t){
     const d=new Date(t), now=new Date();
@@ -367,7 +371,7 @@
       row.innerHTML=`<span style="font-size:16px">🧠</span>
         <div class="mi"><div class="mt"></div><div class="md">${count}개 주제 · ${fmtDate(m.updated||Date.now())}</div></div>
         <div class="ma"><button data-r title="이름 변경">✎</button><button data-d title="삭제">🗑</button></div>`;
-      row.querySelector('.mt').textContent=m.name;
+      row.querySelector('.mt').textContent=mapTitle(m);
       row.addEventListener('click',e=>{ if(e.target.closest('.ma')) return; if(id!==store.current) loadMapInto(id); if(!mapsPinned){ mapsOpen=false; applyMaps(); } });
       row.querySelector('[data-r]').addEventListener('click',e=>{e.stopPropagation();renameMap(id);});
       row.querySelector('[data-d]').addEventListener('click',e=>{e.stopPropagation();deleteMap(id);});
