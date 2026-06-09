@@ -372,7 +372,7 @@
         <div class="mi"><div class="mt"></div><div class="md">${count}개 주제 · ${fmtDate(m.updated||Date.now())}</div></div>
         <div class="ma"><button data-r title="이름 변경">✎</button><button data-d title="삭제">🗑</button></div>`;
       row.querySelector('.mt').textContent=mapTitle(m);
-      row.addEventListener('click',e=>{ if(e.target.closest('.ma')) return; if(id!==store.current) loadMapInto(id); if(!mapsPinned){ mapsOpen=false; applyMaps(); } });
+      row.addEventListener('click',e=>{ if(e.target.closest('.ma')) return; if(id!==store.current) loadMapInto(id); });
       row.querySelector('[data-r]').addEventListener('click',e=>{e.stopPropagation();renameMap(id);});
       row.querySelector('[data-d]').addEventListener('click',e=>{e.stopPropagation();deleteMap(id);});
       list.appendChild(row);
@@ -740,7 +740,7 @@
   document.getElementById('mapsBtn').onclick=()=>{ if(mapsPinned) return; mapsOpen?(function(){mapsOpen=false;applyMaps();})():openMaps(); };
   document.getElementById('pinMaps').onclick=togglePin;
   document.getElementById('closeMaps').onclick=closeMaps;
-  document.getElementById('newMapBtn').onclick=()=>{ const name=prompt('새 마인드맵 이름','마인드맵'); if(name===null)return; createMap(name.trim()||'마인드맵'); if(!mapsPinned){ mapsOpen=false; applyMaps(); } };
+  document.getElementById('newMapBtn').onclick=()=>{ const name=prompt('새 마인드맵 이름','마인드맵'); if(name===null)return; createMap(name.trim()||'마인드맵'); };
   document.getElementById('zoomIn').onclick=()=>{const r=stage.getBoundingClientRect();zoomTo(view.scale*1.15,r.left+r.width/2,r.top+r.height/2);};
   document.getElementById('zoomOut').onclick=()=>{const r=stage.getBoundingClientRect();zoomTo(view.scale/1.15,r.left+r.width/2,r.top+r.height/2);};
   document.getElementById('hintClose').onclick=()=>document.getElementById('hint').style.display='none';
