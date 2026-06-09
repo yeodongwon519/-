@@ -112,9 +112,9 @@
   #notes.open{transform:translateX(0);}
   #maps{left:0;width:290px;border-right:1px solid var(--line);transform:translateX(-100%);box-shadow:6px 0 24px rgba(0,0,0,.06);}
   #maps.open{transform:translateX(0);}
-  .pinbtn{cursor:pointer;color:var(--text-soft);font-size:15px;transition:.12s;line-height:1;}
-  .pinbtn:hover{color:var(--text);}
-  .pinbtn.active{color:var(--accent);transform:rotate(0);}
+  .pinbtn{cursor:pointer;color:var(--text-soft);font-size:14px;line-height:1;padding:3px 7px;border-radius:7px;border:1px solid transparent;transition:.12s;}
+  .pinbtn:hover{background:var(--panel-2);color:var(--text);}
+  .pinbtn.active{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
   /* docked (pinned) maps panel: push the canvas instead of overlaying it */
   body.maps-pinned #maps{transform:translateX(0);box-shadow:none;}
   body.maps-pinned #stage{left:290px;}
@@ -324,7 +324,6 @@
     reindex(); selectedId=root.id;
     history=[JSON.stringify({root,uid})]; hpos=0; updateUndoButtons();
     render(); select(root.id); renderMapList(); renderMapName(); persist();
-    if(mapsPinned) mapsEl.classList.add('open'); // pinned panel never closes on map switch
   }
   function createMap(name){
     uid=1; seed(); if(name) root.text=name;
@@ -369,7 +368,7 @@
         <div class="mi"><div class="mt"></div><div class="md">${count}개 주제 · ${fmtDate(m.updated||Date.now())}</div></div>
         <div class="ma"><button data-r title="이름 변경">✎</button><button data-d title="삭제">🗑</button></div>`;
       row.querySelector('.mt').textContent=m.name;
-      row.addEventListener('click',e=>{ if(e.target.closest('.ma')) return; if(id!==store.current) loadMapInto(id); if(!mapsPinned) closeMaps(); });
+      row.addEventListener('click',e=>{ if(e.target.closest('.ma')) return; if(id!==store.current) loadMapInto(id); if(!mapsPinned){ mapsOpen=false; applyMaps(); } });
       row.querySelector('[data-r]').addEventListener('click',e=>{e.stopPropagation();renameMap(id);});
       row.querySelector('[data-d]').addEventListener('click',e=>{e.stopPropagation();deleteMap(id);});
       list.appendChild(row);
@@ -586,17 +585,19 @@
   function openNotes(){ notesEl.classList.add('open'); document.getElementById('zoombox').classList.add('shift'); syncNotes(); }
   function closeNotes(){ notesEl.classList.remove('open'); document.getElementById('zoombox').classList.remove('shift'); }
   function toggleNotes(){ notesEl.classList.contains('open')?closeNotes():openNotes(); }
-  let mapsPinned=false;
-  function setPinned(p){
-    mapsPinned=p;
-    document.body.classList.toggle('maps-pinned',p);
-    document.getElementById('pinMaps').classList.toggle('active',p);
-    document.getElementById('pinMaps').title = p?'고정 해제':'패널 고정';
-    try{ localStorage.setItem('mindflow.mapsPinned', p?'1':''); }catch(e){}
-    if(p){ renderMapList(); mapsEl.classList.add('open'); }
+  let mapsPinned=false, mapsOpen=false;
+  function applyMaps(){
+    const visible = mapsOpen || mapsPinned;
+    mapsEl.classList.toggle('open', visible);
+    document.body.classList.toggle('maps-pinned', mapsPinned);
+    document.getElementById('pinMaps').classList.toggle('active', mapsPinned);
+    document.getElementById('pinMaps').title = mapsPinned?'고정 해제':'패널 고정';
+    document.getElementById('hint').classList.toggle('shift', visible);
   }
-  function openMaps(){ renderMapList(); mapsEl.classList.add('open'); document.getElementById('hint').classList.add('shift'); }
-  function closeMaps(){ if(mapsPinned) setPinned(false); mapsEl.classList.remove('open'); document.getElementById('hint').classList.remove('shift'); }
+  function openMaps(){ mapsOpen=true; renderMapList(); applyMaps(); }
+  // X button: fully close AND release the pin. This is the ONLY way a pinned panel closes.
+  function closeMaps(){ mapsOpen=false; mapsPinned=false; try{ localStorage.setItem('mindflow.mapsPinned',''); }catch(e){} applyMaps(); }
+  function togglePin(){ mapsPinned=!mapsPinned; if(mapsPinned) mapsOpen=true; try{ localStorage.setItem('mindflow.mapsPinned', mapsPinned?'1':''); }catch(e){} if(mapsPinned) renderMapList(); applyMaps(); }
   function syncNotes(){
     const n=nodeIndex.get(selectedId);
     document.getElementById('noteFor').textContent = n?(n.text.length>22?n.text.slice(0,22)+'…':n.text):'—';
@@ -732,10 +733,10 @@
   document.getElementById('closeNote').onclick=closeNotes;
   document.getElementById('fit').onclick=fit;
   document.getElementById('fitBtn').onclick=fit;
-  document.getElementById('mapsBtn').onclick=()=>{ if(mapsPinned) return; mapsEl.classList.contains('open')?closeMaps():openMaps(); };
-  document.getElementById('pinMaps').onclick=()=>setPinned(!mapsPinned);
+  document.getElementById('mapsBtn').onclick=()=>{ if(mapsPinned) return; mapsOpen?(function(){mapsOpen=false;applyMaps();})():openMaps(); };
+  document.getElementById('pinMaps').onclick=togglePin;
   document.getElementById('closeMaps').onclick=closeMaps;
-  document.getElementById('newMapBtn').onclick=()=>{ const name=prompt('새 마인드맵 이름','마인드맵'); if(name===null)return; createMap(name.trim()||'마인드맵'); if(!mapsPinned) closeMaps(); };
+  document.getElementById('newMapBtn').onclick=()=>{ const name=prompt('새 마인드맵 이름','마인드맵'); if(name===null)return; createMap(name.trim()||'마인드맵'); if(!mapsPinned){ mapsOpen=false; applyMaps(); } };
   document.getElementById('zoomIn').onclick=()=>{const r=stage.getBoundingClientRect();zoomTo(view.scale*1.15,r.left+r.width/2,r.top+r.height/2);};
   document.getElementById('zoomOut').onclick=()=>{const r=stage.getBoundingClientRect();zoomTo(view.scale/1.15,r.left+r.width/2,r.top+r.height/2);};
   document.getElementById('hintClose').onclick=()=>document.getElementById('hint').style.display='none';
@@ -773,7 +774,7 @@
     render();
     if(!localStorage.getItem('mindflow.seen')){ fit(); localStorage.setItem('mindflow.seen','1'); }
     select(root.id); renderMapName(); renderMapList(); persist();
-    if(localStorage.getItem('mindflow.mapsPinned')==='1') setPinned(true);
+    if(localStorage.getItem('mindflow.mapsPinned')==='1'){ mapsPinned=true; mapsOpen=true; renderMapList(); applyMaps(); }
   }
   boot();
   window.addEventListener('resize',applyView);
