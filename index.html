@@ -324,6 +324,7 @@
     reindex(); selectedId=root.id;
     history=[JSON.stringify({root,uid})]; hpos=0; updateUndoButtons();
     render(); select(root.id); renderMapList(); renderMapName(); persist();
+    if(mapsPinned) mapsEl.classList.add('open'); // pinned panel never closes on map switch
   }
   function createMap(name){
     uid=1; seed(); if(name) root.text=name;
@@ -731,7 +732,7 @@
   document.getElementById('closeNote').onclick=closeNotes;
   document.getElementById('fit').onclick=fit;
   document.getElementById('fitBtn').onclick=fit;
-  document.getElementById('mapsBtn').onclick=()=>mapsEl.classList.contains('open')?closeMaps():openMaps();
+  document.getElementById('mapsBtn').onclick=()=>{ if(mapsPinned) return; mapsEl.classList.contains('open')?closeMaps():openMaps(); };
   document.getElementById('pinMaps').onclick=()=>setPinned(!mapsPinned);
   document.getElementById('closeMaps').onclick=closeMaps;
   document.getElementById('newMapBtn').onclick=()=>{ const name=prompt('새 마인드맵 이름','마인드맵'); if(name===null)return; createMap(name.trim()||'마인드맵'); if(!mapsPinned) closeMaps(); };
