@@ -613,7 +613,15 @@
       case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight': e.preventDefault(); navigate(e.key); break;
       case 'f': case 'F': fit(); break;
       default:
-        if(e.key.length===1&&!e.altKey){ startEdit(selectedId,true); const el=elIndex.get(selectedId),txt=el&&el.querySelector('.txt'); if(txt)txt.textContent=''; }
+        // Begin editing on any printable key (incl. IME composition keys).
+        // We consume this keystroke to enter the editor first so the Korean IME
+        // is bound to the focused field; the existing text is selected so the
+        // next character the user types replaces it — no stray English leaks in.
+        if(!e.ctrlKey && !e.metaKey && !e.altKey &&
+           (e.key.length===1 || e.keyCode===229 || e.key==='Process')){
+          e.preventDefault();
+          startEdit(selectedId,true);
+        }
     }
   });
 
